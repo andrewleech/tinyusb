@@ -138,6 +138,13 @@ void tud_cdc_n_set_wanted_char (uint8_t itf, char wanted)
   _cdcd_itf[itf].wanted_char = wanted;
 }
 
+void tud_cdc_n_set_overwritable (uint8_t itf, bool overwritable)
+{
+  // Config TX fifo as overwritable / non-overwritable to preserve newer
+  // or older data when device is not connected
+  tu_fifo_set_overwritable(&_cdcd_itf[itf].tx_ff, overwritable);
+}
+
 
 //--------------------------------------------------------------------+
 // READ API

@@ -67,6 +67,10 @@ void     tud_cdc_n_get_line_coding (uint8_t itf, cdc_line_coding_t* coding);
 // Set special character that will trigger tud_cdc_rx_wanted_cb() callback on receiving
 void     tud_cdc_n_set_wanted_char (uint8_t itf, char wanted);
 
+// Config TX fifo as overwritable / non-overwritable to preserve newer or older data 
+// when device is not connected
+void     tud_cdc_n_set_overwritable (uint8_t itf, bool overwritable);
+
 // Get the number of bytes available for reading
 uint32_t tud_cdc_n_available       (uint8_t itf);
 
@@ -183,6 +187,11 @@ static inline void tud_cdc_get_line_coding (cdc_line_coding_t* coding)
 static inline void tud_cdc_set_wanted_char (char wanted)
 {
   tud_cdc_n_set_wanted_char(0, wanted);
+}
+
+static inline void tud_cdc_set_overwritable (char overwritable)
+{
+  tud_cdc_n_set_overwritable(0, overwritable);
 }
 
 static inline uint32_t tud_cdc_available (void)
