@@ -156,6 +156,7 @@
   #include "stm32wbxx.h"
   #define FSDEV_PMA_SIZE (1024u)
   #define FSDEV_HAS_SBUF_ISO 0
+  #define FSDEV_REG_BASE USB1_BASE
   /* ST provided header has incorrect value of USB_PMAADDR */
   #define FSDEV_PMA_BASE USB1_PMAADDR
 

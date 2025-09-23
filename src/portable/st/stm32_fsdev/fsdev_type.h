@@ -124,9 +124,18 @@ typedef struct {
 #define _va32     volatile TU_ATTR_ALIGNED(4)
 
 typedef struct {
+#ifdef FSDEV_BUS_32BIT
+  // 32-bit architectures: Use 32-bit aligned registers
   struct {
     _va32 fsdev_bus_t reg;
   }ep[FSDEV_EP_COUNT];
+#else
+  // 16-bit architectures: Use 16-bit registers with padding to maintain 4-byte spacing
+  struct {
+    fsdev_bus_t reg;      // 16-bit register, naturally aligned
+    uint16_t reserved;    // Padding to maintain hardware 4-byte endpoint spacing
+  }ep[FSDEV_EP_COUNT];
+#endif
 
   _va32 uint32_t RESERVED7[8];       // Reserved
   _va32 fsdev_bus_t CNTR;            // 40: Control register
@@ -197,7 +206,7 @@ TU_ATTR_ALWAYS_INLINE static inline void ep_write(uint32_t ep_id, uint32_t value
 }
 
 TU_ATTR_ALWAYS_INLINE static inline void ep_write_clear_ctr(uint32_t ep_id, tusb_dir_t dir) {
-  uint32_t reg = FSDEV_REG->ep[ep_id].reg;
+  uint32_t reg = ep_read(ep_id);
   reg |= USB_EP_CTR_TX | USB_EP_CTR_RX;
   reg &= USB_EPREG_MASK;
   reg &= ~(1 << (USB_EP_CTR_TX_Pos + (dir == TUSB_DIR_IN ? 0 : 8)));
