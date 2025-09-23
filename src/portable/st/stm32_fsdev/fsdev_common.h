@@ -224,12 +224,24 @@ TU_ATTR_ALWAYS_INLINE static inline void btable_set_rx_bufsize(uint32_t ep_id, u
 
 TU_ATTR_ALWAYS_INLINE static inline void pcd_set_endpoint(USB_TypeDef * USBx, uint32_t bEpIdx, uint32_t wRegValue) {
   (void) USBx;
+#ifdef FSDEV_BUS_32BIT
   FSDEV_REG->ep[bEpIdx].reg = (fsdev_bus_t) wRegValue;
+#else
+  // Use direct 16-bit register access to avoid alignment issues
+  volatile uint16_t *reg = (volatile uint16_t *)((&USBx->EP0R) + bEpIdx*2u);
+  *reg = (uint16_t)wRegValue;
+#endif
 }
 
 TU_ATTR_ALWAYS_INLINE static inline uint32_t pcd_get_endpoint(USB_TypeDef * USBx, uint32_t bEpIdx) {
   (void) USBx;
+#ifdef FSDEV_BUS_32BIT
   return FSDEV_REG->ep[bEpIdx].reg;
+#else
+  // Use direct 16-bit register access to avoid alignment issues
+  volatile uint16_t *reg = (volatile uint16_t *)((&USBx->EP0R) + bEpIdx*2u);
+  return *reg;
+#endif
 }
 
 /**
