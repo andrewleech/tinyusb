@@ -188,8 +188,21 @@ static inline void dwc2_phy_init(dwc2_regs_t* dwc2, uint8_t hs_phy_type) {
     dwc2->stm32_gccfg &= ~STM32_GCCFG_PWRDWN;
 #endif
 
+    // ULPI PHY (external) - must configure before core reset
+    if (hs_phy_type == GHWCFG2_HSPHY_ULPI) {
+      // Clear GCCFG.PWRDWN for external PHY
+      dwc2->stm32_gccfg &= ~STM32_GCCFG_PWRDWN;
+
+      // Configure ULPI interface - clear FS/LS and internal PHY bits
+      // This matches STM HAL USB_CoreInit() for ULPI
+      uint32_t gusbcfg = dwc2->gusbcfg;
+      gusbcfg &= ~(GUSBCFG_TSDPS | GUSBCFG_ULPIFSLS | GUSBCFG_PHYSEL);
+      // Default to internal VBUS indicator and drive (cleared)
+      gusbcfg &= ~(GUSBCFG_ULPIEVBUSD | GUSBCFG_ULPIEVBUSI);
+      dwc2->gusbcfg = gusbcfg;
+
     // Enable on-chip HS PHY
-    if (hs_phy_type == GHWCFG2_HSPHY_UTMI || hs_phy_type == GHWCFG2_HSPHY_UTMI_ULPI) {
+    } else if (hs_phy_type == GHWCFG2_HSPHY_UTMI || hs_phy_type == GHWCFG2_HSPHY_UTMI_ULPI) {
       #ifdef USB_HS_PHYC
       // Enable UTMI HS PHY
       dwc2->stm32_gccfg |= STM32_GCCFG_PHYHSEN;
