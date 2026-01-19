@@ -426,6 +426,15 @@ bool hcd_init(uint8_t rhport, const tusb_rhport_init_t* rh_init) {
   // No hardware detection of Vbus B-session is available on the STM32N6
   dwc2->stm32_gccfg &= ~STM32_GCCFG_VBVALOVAL;
 #endif
+
+  // For STM32F4/F2/F7: Force VBUS valid and A-session valid for self-powered boards
+  #if defined(STM32F2) || defined(STM32F4) || defined(STM32F7)
+  // Clear B-session valid override (device mode), set A-session override (host mode)
+  dwc2->gotgctl = (dwc2->gotgctl & ~((1u << 6) | (1u << 7))) |  // Clear BVALOEN | BVALOVAL
+                  (1u << 2) | (1u << 3) |   // Set VBVALOVEN | VBVALOVAL (VBUS valid override)
+                  (1u << 4) | (1u << 5);    // Set AVALOVEN | AVALOVAL (A-session valid override)
+  #endif
+
   while ((dwc2->gintsts & GINTSTS_CMOD) != GINTSTS_CMODE_HOST) {}
 
   // configure fixed-allocated fifo scheme
@@ -883,9 +892,6 @@ static void handle_rxflvl_irq(uint8_t rhport) {
 
 // return true if there is still pending data and need more ISR
 static bool handle_txfifo_empty(dwc2_regs_t* dwc2, bool is_periodic) {
-  // Use period txsts for both p/np to get request queue space available (1-bit difference, it is small enough)
-  const dwc2_hptxsts_t txsts = {.value = (is_periodic ? dwc2->hptxsts : dwc2->hnptxsts)};
-
   const uint8_t max_channel = dwc2_channel_count(dwc2);
   for (uint8_t ch_id = 0; ch_id < max_channel; ch_id++) {
     dwc2_channel_t* channel = &dwc2->channel[ch_id];
@@ -900,6 +906,9 @@ static bool handle_txfifo_empty(dwc2_regs_t* dwc2, bool is_periodic) {
       for (uint16_t i = 0; i < remain_packets; i++) {
         const uint16_t remain_bytes = edpt->buflen - xfer->fifo_bytes;
         const uint16_t xact_bytes = tu_min16(remain_bytes, hcchar.ep_size);
+
+        // Re-read FIFO status before each packet write to get current available space
+        const dwc2_hptxsts_t txsts = {.value = (is_periodic ? dwc2->hptxsts : dwc2->hnptxsts)};
 
         // skip if there is not enough space in FIFO and RequestQueue.
         // Packet's last word written to FIFO will trigger a request queue
@@ -1148,6 +1157,7 @@ static bool handle_channel_in_dma(dwc2_regs_t* dwc2, uint8_t ch_id, uint32_t hci
         is_done = true;
         xfer->result = XFER_RESULT_FAILED;
       } else {
+        xfer->err_count = 0;
         channel->hcintmsk |= HCINT_ACK | HCINT_NAK | HCINT_DATATOGGLE_ERR;
         hcsplt.split_compl = 0;
         channel->hcsplt = hcsplt.value;
