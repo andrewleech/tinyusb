@@ -1240,6 +1240,7 @@ static bool handle_channel_out_dma(dwc2_regs_t* dwc2, uint8_t ch_id, uint32_t hc
          is_done = true;
        } else {
          // clean up transfer so far and start again
+         xfer->err_count = 0;
          channel_xfer_out_wrapup(dwc2, ch_id);
          channel_xfer_start(dwc2, ch_id);
        }
