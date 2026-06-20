@@ -655,7 +655,15 @@ bool hcd_edpt_abort_xfer(uint8_t rhport, uint8_t dev_addr, uint8_t ep_addr) {
     uint32_t const bit = 1ul << ((ep->interrupt_num + 1) * 2 + (ep->rx ? 0 : 1));
     usb_hw->abort_done = bit;   // EP_ABORT_DONE is write-clear: drop any stale done so we wait on a fresh abort
     usb_hw_set->abort = bit;
-    while ( !(usb_hw->abort_done & bit) ) {}
+    // EP_ABORT_DONE asserts within a few cycles (hardware-confirmed), so this spin
+    // normally exits on the first read. The 1 ms deadline is a pure safety net:
+    // the spin runs with the USB IRQ masked on core0, so an (impossible)
+    // never-asserting abort must never wedge the whole host stack. On the
+    // unexpected timeout we fall through to the same teardown as success -
+    // clearing our buffer and the controller abort/done/buf_status is best-effort
+    // recovery; leaving abort asserted with an armed buffer would be worse.
+    uint32_t const abort_start = time_us_32();
+    while ( !(usb_hw->abort_done & bit) && (time_us_32() - abort_start) < 1000u ) {}
 
     // Controller is idle on this endpoint: clear the armed buffer, drop any
     // completion latched for it, clear done for the next abort, release abort.
