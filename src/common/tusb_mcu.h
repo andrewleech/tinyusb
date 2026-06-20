@@ -621,6 +621,11 @@
   #define TUP_USBIP_DWC2_AT32
   #define TUP_DCD_ENDPOINT_MAX    8
 
+#elif TU_CHECK_MCU(OPT_MCU_CORIGINE_BAO1X)
+  #define TUP_USBIP_CORIGINE_UDC
+  #define TUP_DCD_ENDPOINT_MAX    5
+  #define TUP_RHPORT_HIGHSPEED    1
+
 #endif
 
 //--------------------------------------------------------------------+
