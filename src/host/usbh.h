@@ -191,6 +191,13 @@ TU_ATTR_ALWAYS_INLINE static inline void tuh_task(void) {
 // Check if there is pending events need processing by tuh_task()
 bool tuh_task_event_ready(void);
 
+// Report the host stack's next time-deferred deadline (the enumeration debounce
+// and reset-recovery delays), for integrations that pump tuh_task from a one-shot
+// timer rather than a periodic tick. Returns true and writes the milliseconds
+// until it is due (0 if already due) to out_ms when a deferred function is
+// pending; returns false when none is pending.
+bool tuh_next_deferred_ms(uint32_t *out_ms);
+
 #ifndef TUSB_HCD_H_
 extern void hcd_int_handler(uint8_t rhport, bool in_isr);
 #endif
