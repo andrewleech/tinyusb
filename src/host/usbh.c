@@ -744,6 +744,29 @@ bool tuh_task_event_ready(void) {
   return false;
 }
 
+bool tuh_next_deferred_ms(uint32_t* out_ms) {
+  if (!tuh_inited()) {
+    return false;
+  }
+
+  bool     pending = false;
+  uint32_t min_ms  = UINT32_MAX;
+
+  if (_usbh_data.call_after.func != NULL) {
+    pending = true;
+    (void) deadline_clamp(_usbh_data.call_after.at_ms, &min_ms);
+  }
+  if (_usbh_data.ctrl_xfer_info.stage != CONTROL_STAGE_IDLE) {
+    pending = true;
+    (void) deadline_clamp(_usbh_data.ctrl_xfer_info.timeout_at_ms, &min_ms);
+  }
+
+  if (pending) {
+    *out_ms = min_ms;
+  }
+  return pending;
+}
+
 // One dequeued event; false stops tuh_task_ext() (a failed assertion or a gone device)
 static bool usbh_process_event(hcd_event_t* event, bool in_isr) {
   (void) in_isr; // only a hub defers attaches

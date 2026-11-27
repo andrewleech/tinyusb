@@ -190,6 +190,12 @@ bool tuh_task_stop(void);
 // Check if there is pending events need processing by tuh_task()
 bool tuh_task_event_ready(void);
 
+// Milliseconds until the host stack's next time-based deadline: a deferred call (enumeration debounce, reset
+// recovery) or the in-flight control transfer watchdog. Returns true and writes the time to out_ms (0 if already due)
+// when one is pending, false when none is. For integrations that pump tuh_task() from a one-shot timer instead of a
+// periodic tick: call tuh_task_event_ready() for queued events, then arm the timer from this.
+bool tuh_next_deferred_ms(uint32_t* out_ms);
+
 #ifndef TUSB_HCD_H_
 extern void hcd_int_handler(uint8_t rhport, bool in_isr);
 #endif
